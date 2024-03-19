@@ -1,0 +1,2 @@
+files,labels1,probs1,labels2,probs2,series_descriptions,pred_gini_impurity,pred_margin_confidence,0018_0015,0008_0060,0054_0016,experiment,scan
+/input/DICOM/1.2.840.113654.2.45.6248.261231892365276969996827848865802446928-18-41-1fcal8s.dcm,SWI,0.9958379,OT,0.00131146,SWI_Images ,0.008302331,0.99452645,BRAIN,MR,empty,NA,NA
