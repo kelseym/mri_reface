@@ -1,4 +1,5 @@
 FROM mri_reface:latest
-COPY ./workspace /workspace
-
-
+USER root
+RUN apt-get update && apt-get -y install python3
+COPY ./workspace/ /workspace/
+WORKDIR /workspace

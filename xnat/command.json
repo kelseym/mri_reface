@@ -1,13 +1,13 @@
 {
     "name": "mri_reface",
-    "description": "Runs mri_reface on a DICOM scan.",
+    "description": "Runs mri_reface on a DICOM scan with project level scan classification.",
     "label": "dcm2niix",
     "info-url": "https://github.com/kelseym/mri_reface",
     "version": "dev",
     "schema-version": "1.0",
     "type": "docker",
     "image": "xnat/mri_reface:dev",
-    "command-line": "run_mri_reface.sh /input /output",
+    "command-line": "python3 xnat_reface.py --input /input --output /output #EXPERIMENT_ID# #SCAN_ID# --csv /csv/#SCAN_CLASS_CSV_FILE#",
     "mounts": [
         {
             "name": "in",
@@ -15,12 +15,47 @@
             "path": "/input"
         },
         {
+            "name": "csv",
+            "writable": "true",
+            "path": "/csv"
+        },
+        {
             "name": "out",
             "writable": "true",
             "path": "/output"
         }
     ],
-    "inputs": [],
+    "inputs": [
+        {
+            "name": "experiment-id",
+            "description": "Experiment ID used to match CSV row.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#EXPERIMENT_ID#",
+            "command-line-flag": "--experiment",
+            "command-line-separator": " ",
+            "true-value": null,
+            "false-value": null
+        },
+        {
+            "name": "scan-id",
+            "description": "Scan ID used to match CSV row.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#SCAN_ID#",
+            "command-line-flag": "--scan",
+            "command-line-separator": " ",
+            "true-value": null,
+            "false-value": null
+        },
+        {
+            "name": "csv-file",
+            "description": "CSV file as a project resource, containing scan classification data.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#SCAN_CLASS_CSV_FILE#"
+        }
+    ],
     "outputs": [
         {
             "name": "output",
@@ -41,10 +76,18 @@
                     "description": "Input scan",
                     "type": "Scan",
                     "required": true,
-                    "matcher": "'DICOM' in @.resources[*].label"
+                    "matcher": "'DICOM' in @.resources[*].label",
+                    "provides-value-for-command-input": "scan-id"
                 }
             ],
             "derived-inputs": [
+                {
+                    "name": "scan-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "scan",
+                    "provides-value-for-command-input": "scan-id",
+                    "derived-from-xnat-object-property": "id"
+                },
                 {
                     "name": "scan-dicoms",
                     "description": "The dicom resource on the scan",
@@ -52,6 +95,56 @@
                     "derived-from-wrapper-input": "scan",
                     "provides-files-for-command-mount": "in",
                     "matcher": "@.label == 'DICOM'"
+                },
+                {
+                    "name": "session",
+                    "description": "Session",
+                    "type": "Session",
+                    "required": true,
+                    "load-children": false,
+                    "derived-from-wrapper-input": "scan",
+                    "provides-value-for-command-input": "experiment-id"
+                },
+                {
+                    "name": "session-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "session",
+                    "provides-value-for-command-input": "experiment-id",
+                    "derived-from-xnat-object-property": "id"
+                },
+                {
+                    "name": "project",
+                    "description": "Input project",
+                    "type": "Project",
+                    "required": true,
+                    "load-children": true,
+                    "derived-from-wrapper-input": "session"
+                },
+                {
+                    "name": "scan-class-resource",
+                    "description": "Scan classifier CSV folder.",
+                    "type": "Resource",
+                    "matcher": "@.label == 'ScanClassification'",
+                    "derived-from-wrapper-input": "project",
+                    "provides-files-for-command-mount": "csv"
+                },
+                {
+                    "name": "scan-class-file",
+                    "type": "File",
+                    "matcher": "@.name =~ /.*?csv/",
+                    "required": true,
+                    "load-children": true,
+                    "derived-from-wrapper-input": "scan-class-resource"
+                },
+                {
+                    "name": "scan-class-filename",
+                    "type": "string",
+                    "required": true,
+                    "provides-value-for-command-input": "csv-file",
+                    "user-settable": false,
+                    "load-children": false,
+                    "derived-from-wrapper-input": "scan-class-file",
+                    "derived-from-xnat-object-property": "name"
                 }
             ],
             "output-handlers": [
