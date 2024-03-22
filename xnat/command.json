@@ -124,7 +124,7 @@
                     "name": "scan-class-resource",
                     "description": "Scan classifier CSV folder.",
                     "type": "Resource",
-                    "matcher": "@.label == 'ScanClassification'",
+                    "matcher": "@.label == 'DICOM_LM_CLASSIFIER_OUTPUT'",
                     "derived-from-wrapper-input": "project",
                     "provides-files-for-command-mount": "csv"
                 },

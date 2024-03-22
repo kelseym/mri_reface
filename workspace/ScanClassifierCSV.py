@@ -52,13 +52,19 @@ class ScanClassifierCSV:
         im_type = None
         print(f"Finding scan {scan} in experiment {experiment}.")
         self.scan_row = self._find_scan_row(experiment, scan)
+        body_part_column = '0018_0015' if '0018_0015' in self.header else 'BodyPartExamined'
+        print(f"Body part column: {body_part_column}")
+        modality_column = '0008_0060' if '0008_0060' in self.header else 'Modality'
+        print(f"Modality column: {modality_column}")
+        radio_pharmaceutical_column = '0054_0016' if '0054_0016' in self.header else 'Radiopharmaceutical'
+        print(f"RadioPharmaceutical column: {radio_pharmaceutical_column}")
         print(f"Scan row: {self.scan_row}")
         if self.scan_row is not None:
-            if self._get_value('0018_0015', self.scan_row).lower() in ['head', 'brain', 'neuro']:
-                if self._get_value('0008_0060', self.scan_row) == 'CT':
+            if self._get_value(body_part_column, self.scan_row).lower() in ['head', 'brain', 'neuro']:
+                if self._get_value(modality_column, self.scan_row) == 'CT':
                     im_type = 'CT'
-                elif self._get_value('0008_0060', self.scan_row) == 'PET':
-                    radiopharmaceutical = self._get_value('0054_0016', self.scan_row)
+                elif self._get_value(modality_column, self.scan_row) == 'PET':
+                    radiopharmaceutical = self._get_value(radio_pharmaceutical_column, self.scan_row)
                     if radiopharmaceutical in ['Amyloid', 'PIB', 'AV45', 'florbetapir', 'AV-45']:
                         im_type = 'PIB'
                     elif radiopharmaceutical.lower() in ['fdg']:
@@ -67,7 +73,7 @@ class ScanClassifierCSV:
                         im_type = 'TAU'
                     else:
                         raise ValueError(f"PET Radiopharmaceutical {radiopharmaceutical} not supported.")
-                elif self._get_value('0008_0060', self.scan_row) in ['MRI', 'MR']:
+                elif self._get_value(modality_column, self.scan_row) in ['MRI', 'MR']:
                     label = self._get_value('labels1', self.scan_row)
                     im_type = 'FLAIR'
                     if 't2' in label.lower() and 'flair' not in label.lower():
