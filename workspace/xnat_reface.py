@@ -22,14 +22,14 @@ def main():
             scan_type = extract_im_type(param.csv, param.experiment, param.scan)
 
         # Stage input files
-        print('Staging input files...')
+        print('Staging input files...', flush=True)
 
         # Launch mri_reface
-        print('Launching mri_reface...')
+        print('Launching mri_reface...', flush=True)
         launch_shell_script(param.mri_reface_script, param.input, param.output, scan_type, param.mri_reface_opts)
 
         # Stage output files
-        print('Staging output files...')
+        print('Staging output files...', flush=True)
 
     except csv.Error as e:
         sys.exit(f'Error parsing CSV file: {e}')
@@ -64,7 +64,7 @@ def extract_im_type(csv_file, experiment, scan):
 def launch_shell_script(script_path, input, output, scan_type, mri_reface_opts):
     # Prepare the command
     command = [script_path, input, output, '-imType', scan_type]
-    print(f"Launching mri_reface with command: {' '.join(command)}")
+    print(f"Launching mri_reface with command: {' '.join(command)}", flush=True)
     # Add mri_reface_opts if it is not None
     if mri_reface_opts is not None:
         command.extend(mri_reface_opts.split())
@@ -75,7 +75,7 @@ def launch_shell_script(script_path, input, output, scan_type, mri_reface_opts):
         if output == '' and process.poll() is not None:
             break
         if output:
-            print(output.strip())
+            print(output.strip(), flush=True)
     rc = process.poll()
     if rc != 0:
         raise Exception(f"Error launching mri_reface: return code {rc}")
@@ -83,5 +83,5 @@ def launch_shell_script(script_path, input, output, scan_type, mri_reface_opts):
 
 
 if __name__ == '__main__':
-    print(f"Command line call: {' '.join(sys.argv)}")
+    print(f"Command line call: {' '.join(sys.argv)}", flush=True)
     main()
