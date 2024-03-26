@@ -8,6 +8,8 @@
     "type": "docker",
     "image": "xnat/mri_reface:dev",
     "command-line": "python3 xnat_reface.py --input /input --output /output #EXPERIMENT_ID# #SCAN_ID# --csv /csv/#SCAN_CLASS_CSV_FILE#",
+    "reserve-memory": 4000,
+    "limit-memory": 4000,
     "mounts": [
         {
             "name": "in",
