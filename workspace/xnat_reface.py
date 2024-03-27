@@ -34,7 +34,7 @@ def main():
     except csv.Error as e:
         sys.exit(f'Error parsing CSV file: {e}')
     except Exception as e:
-        sys.exit(f'Error parsing command line parameters: {e}')
+        sys.exit(f'Error launching mri_reface: {e}')
 
 
 def parse_command_line_parameters():
@@ -48,8 +48,8 @@ def parse_command_line_parameters():
     parser.add_argument('--experiment', required=False, default=None, help='Specify experiment name.')
     parser.add_argument('--scan', required=False, default=None, help='Specify scan name.')
     parser.add_argument('--mri_reface_opts', required=False, help='Specify optional mri_reface arguments.')
-    parser.add_argument('--input', required=True, help='DICOM Scan input directory')
-    parser.add_argument('--output', required=True, help='mri_reface output directory')
+    parser.add_argument('--input', required=False, default='/input', help='DICOM Scan input directory')
+    parser.add_argument('--output', required=False, default='/output', help='mri_reface output directory')
     args = parser.parse_args()
     if args.scan_type is None and args.csv is None:
         raise Exception('Either --scan_type or --csv must be specified.')

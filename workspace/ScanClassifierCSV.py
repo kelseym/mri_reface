@@ -14,15 +14,14 @@ class ScanClassifierCSV:
             return list(reader)
 
     def _find_scan_row(self, experiment, scan):
-        # If there is only one row of data, that's the scan row
-        if len(self.data) - 1:
-            return 1
-        # Otherwise, search for the scan row
-        else:
-            for row_index in len(self.data) - 1:
+        if len(self.data) > 1:
+            for row_index in range(len(self.data)):
                 if self._get_value('experiment', row_index) == experiment \
                         and self._get_value('scan', row_index) == scan:
                     return row_index
+        else:
+            # If there is only one row of data, assume this is the matching row
+            return 1
         return None
 
     def _get_value(self, column_label, row_number):
@@ -60,10 +59,12 @@ class ScanClassifierCSV:
         print(f"RadioPharmaceutical column: {radio_pharmaceutical_column}")
         print(f"Scan row: {self.scan_row}")
         if self.scan_row is not None:
-            if self._get_value(body_part_column, self.scan_row).lower() in ['head', 'brain', 'neuro']:
+            if self._get_value(body_part_column, self.scan_row).lower() in ['head', 'brain', 'neuro', 'na', '']:
                 if self._get_value(modality_column, self.scan_row) == 'CT':
+                    print(f"Found CT Modality.", flush=True)
                     im_type = 'CT'
                 elif self._get_value(modality_column, self.scan_row) == 'PET':
+                    print(f"Found PET Modality.", flush=True)
                     radiopharmaceutical = self._get_value(radio_pharmaceutical_column, self.scan_row)
                     if radiopharmaceutical in ['Amyloid', 'PIB', 'AV45', 'florbetapir', 'AV-45']:
                         im_type = 'PIB'
@@ -74,14 +75,16 @@ class ScanClassifierCSV:
                     else:
                         raise ValueError(f"PET Radiopharmaceutical {radiopharmaceutical} not supported.")
                 elif self._get_value(modality_column, self.scan_row) in ['MRI', 'MR']:
+                    print(f"Found MRI/MR Modality.", flush=True)
                     label = self._get_value('labels1', self.scan_row)
+                    print(f"labels1: {label}")
                     im_type = 'FLAIR'
                     if 't2' in label.lower() and 'flair' not in label.lower():
                         im_type = 'T2'
                     elif 't1' in label or 'mprage' in label:
                         im_type = 'T1'
             else:
-                raise ValueError(f"Body part {self._get_value('0018_0015', self.scan_row)} not supported.")
+                raise ValueError(f"Body part {self._get_value(body_part_column, self.scan_row)} not supported.")
         else:
             raise ValueError(f"Scan: {scan} and experiment: {experiment} not found in CSV: {self.file_path}.")
         if im_type is None:
