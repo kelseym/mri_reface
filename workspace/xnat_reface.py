@@ -69,18 +69,7 @@ def launch_shell_script(script_path, input, output, scan_type, mri_reface_opts):
     if mri_reface_opts is not None:
         command.extend(mri_reface_opts.split())
     # Run the command
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
-            break
-        if output:
-            print(output.strip(), flush=True)
-    rc = process.poll()
-    if rc != 0:
-        raise Exception(f"Error launching mri_reface: return code {rc}")
-    return rc
-
+    subprocess.run(command)
 
 if __name__ == '__main__':
     print(f"Command line call: {' '.join(sys.argv)}", flush=True)
