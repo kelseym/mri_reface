@@ -13,7 +13,7 @@
     "mounts": [
         {
             "name": "in",
-            "writable": "true",
+            "writable": "false",
             "path": "/input"
         },
         {
@@ -25,8 +25,14 @@
             "name": "out",
             "writable": "true",
             "path": "/output"
+        },
+        {
+            "name": "tmp",
+            "writable": "true",
+            "path": "/tmp"
         }
     ],
+    "environment-variables": {"MCR_CACHE_ROOT": "/tmp"},
     "inputs": [
         {
             "name": "experiment-id",
@@ -112,7 +118,7 @@
                     "type": "string",
                     "derived-from-wrapper-input": "session",
                     "provides-value-for-command-input": "experiment-id",
-                    "derived-from-xnat-object-property": "id"
+                    "derived-from-xnat-object-property": "label"
                 },
                 {
                     "name": "project",

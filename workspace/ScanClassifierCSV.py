@@ -81,7 +81,7 @@ class ScanClassifierCSV:
                     im_type = 'FLAIR'
                     if 't2' in label.lower() and 'flair' not in label.lower():
                         im_type = 'T2'
-                    elif 't1' in label or 'mprage' in label:
+                    elif 't1' in label.lower() or 'mprage' in label.lower():
                         im_type = 'T1'
             else:
                 raise ValueError(f"Body part {self._get_value(body_part_column, self.scan_row)} not supported.")
