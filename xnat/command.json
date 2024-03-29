@@ -27,6 +27,20 @@
             "path": "/output"
         },
         {
+            "name": "dicom-out",
+            "writable": "true",
+            "path": "/output/dcm"
+        },
+        {
+            "name": "nifti-out",
+            "writable": "true",
+            "path": "/output/nifti"
+        },
+        {
+            "name": "refaced-nifti-out",
+            "writable": "true",
+            "path": "/output/refaced_nifti"
+        },        {
             "name": "tmp",
             "writable": "true",
             "path": "/tmp"
@@ -67,8 +81,26 @@
     "outputs": [
         {
             "name": "output",
-            "description": "The output file.",
+            "description": "Unsorted output files.",
             "mount": "out",
+            "required": true
+        },
+        {
+            "name": "output-dicom",
+            "description": "Refaced dicom output files.",
+            "mount": "dicom-out",
+            "required": true
+        },
+        {
+            "name": "output-nifti",
+            "description": "NIFTI output files.",
+            "mount": "nifti-out",
+            "required": true
+        },
+        {
+            "name": "refaced-output-nifti",
+            "description": "NIFTI output files.",
+            "mount": "refaced-nifti-out",
             "required": true
         }
     ],
@@ -161,7 +193,39 @@
                     "accepts-command-output": "output",
                     "as-a-child-of-wrapper-input": "scan",
                     "type": "Resource",
-                    "label": "REFACED"
+                    "label": "REFACED_QC",
+                    "description": "Unsorted mri_reface output files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "reface-dicom",
+                    "accepts-command-output": "output-dicom",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_DICOM",
+                    "format": "DICOM",
+                    "description": "Refaced DICOM scan files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "nifti",
+                    "accepts-command-output": "output-nifti",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "NIFTI",
+                    "format": "NIFTI",
+                    "description": "NIFTI output files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "reface-nifti",
+                    "accepts-command-output": "refaced-output-nifti",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_NIFTI",
+                    "format": "NIFTI",
+                    "description": "Refaced NIFTI output files.",
+                    "tags": ["mri_reface"]
                 }
             ]
         }

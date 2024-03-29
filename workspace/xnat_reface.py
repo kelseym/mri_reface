@@ -6,6 +6,11 @@ import argparse
 import csv
 import subprocess
 import sys
+import time
+import glob
+import shutil
+import os
+
 from ScanClassifierCSV import ScanClassifierCSV
 
 
@@ -30,6 +35,17 @@ def main():
 
         # Stage output files
         print('Staging output files...', flush=True)
+        refaced_nifti_output_dir = f'{param.output}/refaced_nifti'
+        subprocess.run(['mkdir', refaced_nifti_output_dir])
+        print(f"Moving refaced nifti files to {refaced_nifti_output_dir}", flush=True)
+        stage_output_files(param.output, refaced_nifti_output_dir, '*deFaced.nii')
+        stage_output_files(param.output, refaced_nifti_output_dir, '*Warp.nii')
+
+        nifti_output_dir = f'{param.output}/nifti'
+        subprocess.run(['mkdir', nifti_output_dir])
+        print(f"Moving nifti files to {nifti_output_dir}", flush=True)
+        stage_output_files(param.output, nifti_output_dir, '*.nii')
+
 
     except csv.Error as e:
         sys.exit(f'Error parsing CSV file: {e}')
@@ -69,8 +85,20 @@ def launch_shell_script(script_path, input, output, scan_type, mri_reface_opts):
     if mri_reface_opts is not None:
         command.extend(mri_reface_opts.split())
     # Run the command
-    subprocess.run(command)
+    result = subprocess.run(command)
+    print(f"mri_reface returned with exit code: {result.returncode}", flush=True)
+    return result
+
+
+def stage_output_files(input_dir, output_dir, pattern):
+    # Move files from input_dir to output_dir
+    for file in glob.glob(f'{input_dir}/{pattern}'):
+        shutil.move(file, output_dir)
+
 
 if __name__ == '__main__':
     print(f"Command line call: {' '.join(sys.argv)}", flush=True)
+    start_time = time.time()
     main()
+    minutes, seconds = divmod((time.time() - start_time), 60)
+    print(f"Execution time: {int(minutes)}:{int(seconds)} (minutes:seconds)", flush=True)
