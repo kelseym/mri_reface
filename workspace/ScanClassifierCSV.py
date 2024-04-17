@@ -83,6 +83,9 @@ class ScanClassifierCSV:
                         im_type = 'T2'
                     elif 't1' in label.lower() or 'mprage' in label.lower():
                         im_type = 'T1'
+                    elif 'OT' in label:
+                        im_type = 'OT'
+                        raise ValueError(f"Scan {scan} in experiment {experiment} has OT label. Reface not supported.")
             else:
                 raise ValueError(f"Body part {self._get_value(body_part_column, self.scan_row)} not supported.")
         else:
