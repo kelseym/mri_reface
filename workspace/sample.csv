@@ -1,2 +1,2 @@
-files,labels1,probs1,labels2,probs2,series_descriptions,pred_gini_impurity,pred_margin_confidence,0018_0015,0008_0060,0054_0016,experiment,scan
-/input/DICOM/1.2.840.113654.2.45.6248.261231892365276969996827848865802446928-18-41-1fcal8s.dcm,SWI,0.9958379,OT,0.00131146,SWI_Images ,0.008302331,0.99452645,BRAIN,MR,empty,NA,NA
+files,labels1,probs1,labels2,probs2,series_descriptions,pred_gini_impurity,pred_margin_confidence,experiment,scan,Modality,BodyPartExamined,Radiopharmaceutical
+/input/M78772008_20150823173900/SCANS/4/DICOM/1.2.840.113654.2.45.6248.17613785281938155660962959121130484530-4-44-18jt69y.dcm,OT,0.9270896,MPRAGE,0.48629692,Head_Spiral__3.0__MPR__cor ,-0.095981836,0.44079265,Patient_007382,4,CT,HEAD,NA
