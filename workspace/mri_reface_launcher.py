@@ -8,7 +8,7 @@ import requests
 
 
 # ~ Sample launch command:
-# python mri_reface_launcher.py --xnat_host http://localhost --xnat_user admin --xnat_pass admin --project Test --csv_input sample.csv --command_wrapper_id 12
+# python mri_reface_launcher.py --xnat_host http://localhost --xnat_user admin [--xnat_pass admin] --project Test --csv_input sample.csv [--xnat_scan_class_filename sample.csv]
 def main():
 
 
@@ -38,10 +38,12 @@ def main():
 
 def launch_command_wrapper(xnat_session, params, scan):
     launch_string = f'{params.xnat_host}/xapi/projects/{params.project}/wrappers/{params.command_wrapper_id}/root/scan/launch'
-    response = xnat_session.post(launch_string, json={'scan': scan})
+    response = xnat_session.post(launch_string,
+                                 json={'scan': scan,
+                                       'scan-class-file': '/archive/projects/'+params.project+'/resources/DICOM_LM_CLASSIFIER_OUTPUT/files/' + params.xnat_scan_class_filename})
     if response.status_code != 200:
         raise Exception(
-            f'Failed to launch command wrapper {params.command_wrapper_id} on scan {scan} with status code {response.status_code}')
+            f'Failed to launch command wrapper {params.command_wrapper_id} on scan {scan} with status code {response.status_code}\n {response.text}')
     else:
         print(f"Launched mri_reface on {scan}", flush=True)
         print(f"Response: {response.text}", flush=True)
@@ -71,9 +73,15 @@ def parse_command_line_parameters():
     parser.add_argument('--project', help='XNAT project ID', required=True)
     parser.add_argument('--csv_input', help='CSV file containing session and scan information'
                                             'Columns must include: experiment, scan', required=True)
+    parser.add_argument('--xnat_scan_class_filename', help='XNAT Project Resource scan classification CSV filename, if different than csv_input filename.')
     parser.add_argument('--command_wrapper_id', help='XNAT command wrapper ID')
 
     args = parser.parse_args()
+
+    if not args.xnat_scan_class_filename:
+        print(f'No XNAT scan classification CSV file specified. '
+              f'Using input CSV filename {args.csv_input} for scan classification.', flush=True)
+        args.xnat_scan_class_filename = args.csv_input
 
     if not args.xnat_pass:
         args.xnat_pass = getpass.getpass('XNAT password: ')
@@ -126,10 +134,13 @@ def get_wrapper_id(session, xnat_host, command_name, wrapper_name):
     # Iterate over the commands
     for command in commands:
         # Check if the command name and wrapper name match the given parameters
-        if command['name'] == command_name and command['wrapperName'] == wrapper_name:
-            # If they match, return the wrapper ID
-            return command['wrapperId']
-
+        if command['name'] == command_name:
+            # Iterate over the command's wrappers
+            for wrapper in command['xnat']:
+                # Check if the wrapper name matches the given parameter
+                if wrapper['name'] == wrapper_name:
+                    # If they match, return the wrapper ID
+                    return wrapper['id']
     # If no matching command is found, raise an exception
     raise Exception(f'No command found with name {command_name} and wrapper name {wrapper_name}')
 
