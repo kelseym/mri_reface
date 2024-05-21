@@ -10,11 +10,17 @@ import requests
 # ~ Sample launch command:
 # python mri_reface_launcher.py --xnat_host http://localhost --xnat_user admin --xnat_pass admin --project Test --csv_input sample.csv --command_wrapper_id 12
 def main():
+
+
     try:
         params = parse_command_line_parameters()
 
         # Get Jsession from XNAT
         xnat_session = start_xnat_session(params)
+
+        # Get the wrapper ID
+        if not params.command_wrapper_id:
+            params.command_wrapper_id = get_wrapper_id(xnat_session, params.xnat_host, "mri_reface", "mri-reface-scan")
 
         # Get scans from CSV
         scans = getScans(xnat_session, params)
@@ -65,7 +71,7 @@ def parse_command_line_parameters():
     parser.add_argument('--project', help='XNAT project ID', required=True)
     parser.add_argument('--csv_input', help='CSV file containing session and scan information'
                                             'Columns must include: experiment, scan', required=True)
-    parser.add_argument('--command_wrapper_id', help='XNAT command wrapper ID', required=True)
+    parser.add_argument('--command_wrapper_id', help='XNAT command wrapper ID')
 
     args = parser.parse_args()
 
@@ -106,6 +112,26 @@ def get_experiment_ids(xnat_session, params):
         label_id_map[experiment['label']] = experiment['ID']
     return label_id_map
 
+def get_wrapper_id(session, xnat_host, command_name, wrapper_name):
+    # Send a GET request to the /xapi/commands endpoint
+    response = session.get(f'{xnat_host}/xapi/commands')
+
+    # Check the status code of the response
+    if response.status_code != 200:
+        raise Exception(f'Failed to get commands from XNAT at {xnat_host} with status code {response.status_code}')
+
+    # Parse the JSON response
+    commands = response.json()
+
+    # Iterate over the commands
+    for command in commands:
+        # Check if the command name and wrapper name match the given parameters
+        if command['name'] == command_name and command['wrapperName'] == wrapper_name:
+            # If they match, return the wrapper ID
+            return command['wrapperId']
+
+    # If no matching command is found, raise an exception
+    raise Exception(f'No command found with name {command_name} and wrapper name {wrapper_name}')
 
 if __name__ == '__main__':
     print(f"Command line call: {' '.join(sys.argv)}", flush=True)
