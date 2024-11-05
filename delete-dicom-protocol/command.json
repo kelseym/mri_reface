@@ -1,0 +1,10 @@
+{
+    "name": "delete-protocol-tag",
+    "description": "Removes Protocol Name DICOM command from input.",
+    "version": "1.0",
+    "type": "docker-setup",
+    "command-line": "java -jar dicom-edit.jar -s remove-protocol-name.txt -i /input -o /output",
+    "image": "registry.nrg.wustl.edu/docker/nrg-repo/delete-protocol-tag:1.0",
+    "generic-resources": {"RESERVED": "1"}
+}
+
