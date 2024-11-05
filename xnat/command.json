@@ -8,8 +8,8 @@
     "type": "docker",
     "image": "registry.nrg.wustl.edu/docker/nrg-repo/mri_reface:dev",
     "command-line": "python3 xnat_reface.py --input /input --output /output #EXPERIMENT_ID# #SCAN_ID# --csv /csv/#SCAN_CLASS_CSV_FILE#",
-    "reserve-memory": 4000,
-    "limit-memory": 4000,
+    "reserve-memory": 8000,
+    "limit-memory": 8000,
     "mounts": [
         {
             "name": "in",
@@ -40,7 +40,8 @@
             "name": "refaced-nifti-out",
             "writable": "true",
             "path": "/output/refaced_nifti"
-        },        {
+        },
+        {
             "name": "tmp",
             "writable": "true",
             "path": "/tmp"
@@ -228,6 +229,132 @@
                     "tags": ["mri_reface"]
                 }
             ]
+        },
+        {
+            "name": "mri-reface-proto-delete",
+            "description": "Run MRI Reface (with Protocol tag delete)",
+            "label": "mri-reface-proto-delete",
+            "contexts": ["xnat:imageScanData"],
+            "external-inputs": [
+                {
+                    "name": "scan",
+                    "description": "Input scan",
+                    "type": "Scan",
+                    "required": true,
+                    "matcher": "'DICOM' in @.resources[*].label",
+                    "provides-value-for-command-input": "scan-id"
+                }
+            ],
+            "derived-inputs": [
+                {
+                    "name": "scan-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "scan",
+                    "provides-value-for-command-input": "scan-id",
+                    "derived-from-xnat-object-property": "id"
+                },
+                {
+                    "name": "scan-dicoms",
+                    "description": "The dicom resource on the scan",
+                    "type": "Resource",
+                    "derived-from-wrapper-input": "scan",
+                    "provides-files-for-command-mount": "in",
+                    "via-setup-command": "registry.nrg.wustl.edu/docker/nrg-repo/delete-protocol-tag:1.0",
+                    "matcher": "@.label == 'DICOM'"
+                },
+                {
+                    "name": "session",
+                    "description": "Session",
+                    "type": "Session",
+                    "required": true,
+                    "load-children": false,
+                    "derived-from-wrapper-input": "scan",
+                    "provides-value-for-command-input": "experiment-id"
+                },
+                {
+                    "name": "session-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "session",
+                    "provides-value-for-command-input": "experiment-id",
+                    "derived-from-xnat-object-property": "label"
+                },
+                {
+                    "name": "project",
+                    "description": "Input project",
+                    "type": "Project",
+                    "required": true,
+                    "load-children": true,
+                    "derived-from-wrapper-input": "session"
+                },
+                {
+                    "name": "scan-class-resource",
+                    "description": "Scan classifier CSV folder.",
+                    "type": "Resource",
+                    "matcher": "@.label == 'DICOM_LM_CLASSIFIER_OUTPUT'",
+                    "derived-from-wrapper-input": "project",
+                    "provides-files-for-command-mount": "csv"
+                },
+                {
+                    "name": "scan-class-file",
+                    "type": "File",
+                    "matcher": "@.name =~ /.*?csv/",
+                    "required": true,
+                    "load-children": true,
+                    "derived-from-wrapper-input": "scan-class-resource"
+                },
+                {
+                    "name": "scan-class-filename",
+                    "type": "string",
+                    "required": true,
+                    "provides-value-for-command-input": "csv-file",
+                    "user-settable": false,
+                    "load-children": false,
+                    "derived-from-wrapper-input": "scan-class-file",
+                    "derived-from-xnat-object-property": "name"
+                }
+            ],
+            "output-handlers": [
+                {
+                    "name": "reface-resource",
+                    "accepts-command-output": "output",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_QC",
+                    "description": "Unsorted mri_reface output files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "reface-dicom",
+                    "accepts-command-output": "output-dicom",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_DICOM",
+                    "format": "DICOM",
+                    "description": "Refaced DICOM scan files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "nifti",
+                    "accepts-command-output": "output-nifti",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "NIFTI",
+                    "format": "NIFTI",
+                    "description": "NIFTI output files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "reface-nifti",
+                    "accepts-command-output": "refaced-output-nifti",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_NIFTI",
+                    "format": "NIFTI",
+                    "description": "Refaced NIFTI output files.",
+                    "tags": ["mri_reface"]
+                }
+            ]
         }
-    ]
+    ],
+    "generic-resources": {"RESERVED": "1"}
 }
