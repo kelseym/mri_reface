@@ -4,17 +4,20 @@
 # Launch the mri_reface shell script
 import argparse
 import csv
+import logging
 import subprocess
 import sys
 import time
 import glob
 import shutil
+import xnat
 import os
 
 from ScanClassifierCSV import ScanClassifierCSV
 
 
 # See https://www.nitrc.org/projects/mri_reface for more information
+
 
 def main():
     try:
@@ -25,6 +28,10 @@ def main():
             scan_type = param.scan_type
         else:
             scan_type = extract_im_type(param.csv, param.experiment, param.scan)
+
+        # if delete_existing is True, delete existing output resources
+        if param.delete_existing:
+            delete_reface_outputs(param)
 
         # Stage input files
         print('Staging input files...', flush=True)
@@ -46,7 +53,6 @@ def main():
         print(f"Moving nifti files to {nifti_output_dir}", flush=True)
         stage_output_files(param.output, nifti_output_dir, '*.nii')
 
-
     except csv.Error as e:
         sys.exit(f'Error parsing CSV file: {e}')
     except Exception as e:
@@ -61,15 +67,44 @@ def parse_command_line_parameters():
     parser.add_argument('--scan_type', default=None, help='Specify scan type.')
     parser.add_argument('--csv', default=None,
                         help='If no scanType given, specify CSV file containing scan classification data.')
+    parser.add_argument('--project', required=False, default=None, help='Specify project id.')
     parser.add_argument('--experiment', required=False, default=None, help='Specify experiment name.')
     parser.add_argument('--scan', required=False, default=None, help='Specify scan name.')
     parser.add_argument('--mri_reface_opts', required=False, help='Specify optional mri_reface arguments.')
     parser.add_argument('--input', required=False, default='/input', help='DICOM Scan input directory')
     parser.add_argument('--output', required=False, default='/output', help='mri_reface output directory')
+    parser.add_argument('--delete_existing', required=False, default=True, help='Delete existing output recources - '
+                                                                                'REFACED_QC, REFACED_DICOM, NIFTI, '
+                                                                                'REFACED_NIFTI')
+    parser.add_argument("--host", default=os.getenv("XNAT_HOST"),
+                        help="XNAT server URL (default: environment variable XNAT_HOST)."
+                        )
+    parser.add_argument("--user", default=os.getenv("XNAT_USER"),
+                        help="XNAT username (default: environment variable XNAT_USER)."
+                        )
+    parser.add_argument("--password", default=os.getenv("XNAT_PASSWORD"),
+                        help="XNAT password (default: environment variable XNAT_PASSWORD)."
+                        )
     args = parser.parse_args()
     if args.scan_type is None and args.csv is None:
         raise Exception('Either --scan_type or --csv must be specified.')
     return args
+
+
+# Delete existing mri_reface output resources
+def delete_reface_outputs(param):
+    reface_resources = ['REFACED_QC', 'REFACED_DICOM', 'NIFTI', 'REFACED_NIFTI']
+    with xnat.connect(param.host, user=param.user, password=param.password) as session:
+        scan = session.projects[param.project].experiments[param.experiment].scans[param.scan]
+        for resource in reface_resources:
+            try:
+                if resource in scan.resources:
+                    logging.debug(f'Deleting existing reface resource: {resource} on scan {param.scan} in '
+                                  f'experiment {param.experiment}')
+                    scan.resources[resource].delete()
+            except Exception as e:
+                logging.error(f'Error deleting existing reface resource: {resource}: {e} on scan {param.scan} in '
+                              f'experiment {param.experiment}')
 
 
 # Parse csv output from scan classifier, return mri_reface compatible imType

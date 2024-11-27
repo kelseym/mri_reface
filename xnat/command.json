@@ -1,13 +1,12 @@
 {
     "name": "mri_reface",
     "description": "Runs mri_reface on a DICOM scan with project level scan classification.",
-    "label": "dcm2niix",
     "info-url": "https://github.com/kelseym/mri_reface",
     "version": "dev",
     "schema-version": "1.0",
     "type": "docker",
     "image": "registry.nrg.wustl.edu/docker/nrg-repo/mri_reface:dev",
-    "command-line": "python3 xnat_reface.py --input /input --output /output #EXPERIMENT_ID# #SCAN_ID# --csv /csv/#SCAN_CLASS_CSV_FILE#",
+    "command-line": "python3 xnat_reface.py --input /input --output /output #PROJECT_ID# #EXPERIMENT_ID# #SCAN_ID# --csv /csv/#SCAN_CLASS_CSV_FILE#",
     "reserve-memory": 8000,
     "limit-memory": 8000,
     "mounts": [
@@ -49,6 +48,17 @@
     ],
     "environment-variables": {"MCR_CACHE_ROOT": "/tmp"},
     "inputs": [
+        {
+            "name": "project-id",
+            "description": "Experiment project ID.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#PROJECT_ID#",
+            "command-line-flag": "--project",
+            "command-line-separator": " ",
+            "true-value": null,
+            "false-value": null
+        },
         {
             "name": "experiment-id",
             "description": "Experiment ID used to match CSV row.",
@@ -162,6 +172,13 @@
                     "derived-from-wrapper-input": "session"
                 },
                 {
+                    "name": "project-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "project",
+                    "provides-value-for-command-input": "project-id",
+                    "derived-from-xnat-object-property": "id"
+                },
+                {
                     "name": "scan-class-resource",
                     "description": "Scan classifier CSV folder.",
                     "type": "Resource",
@@ -259,7 +276,7 @@
                     "type": "Resource",
                     "derived-from-wrapper-input": "scan",
                     "provides-files-for-command-mount": "in",
-                    "via-setup-command": "registry.nrg.wustl.edu/docker/nrg-repo/delete-protocol-tag:1.0",
+                    "via-setup-command": "registry.nrg.wustl.edu/docker/nrg-repo/delete-protocol-tag:1.1",
                     "matcher": "@.label == 'DICOM'"
                 },
                 {
@@ -285,6 +302,13 @@
                     "required": true,
                     "load-children": true,
                     "derived-from-wrapper-input": "session"
+                },
+                {
+                    "name": "project-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "project",
+                    "provides-value-for-command-input": "project-id",
+                    "derived-from-xnat-object-property": "id"
                 },
                 {
                     "name": "scan-class-resource",
