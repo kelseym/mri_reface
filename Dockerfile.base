@@ -1,5 +1,5 @@
 FROM mri_reface:latest
 USER root
-RUN apt-get update && apt-get -y install python3
-COPY ./workspace/ /workspace/
+RUN apt-get update && apt-get -y install python3 && apt-get -y install python3-pip && pip3 install xnat
+ADD ./workspace/*.py /workspace/
 WORKDIR /workspace
