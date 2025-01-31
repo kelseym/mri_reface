@@ -12,6 +12,8 @@ import glob
 import shutil
 import xnat
 import os
+from pydicom import dcmread
+from pydicom.misc import is_dicom
 
 from ScanClassifierCSV import ScanClassifierCSV
 
@@ -33,12 +35,16 @@ def main():
         if param.delete_existing:
             delete_reface_outputs(param)
 
-        # Stage input files
-        print('Staging input files...', flush=True)
+        print('Collecting Window Center and Window Width tags from reference file.', flush=True)
 
-        # Launch mri_reface
+        # Return the Window Center, Window Width, and Explanation tags from a DICOM file (or first file in a directory)
+        [center, width, explanation] = get_window_tags(param.input)
+
         print('Launching mri_reface...', flush=True)
         launch_shell_script(param.mri_reface_script, param.input, param.output, scan_type, param.mri_reface_opts)
+
+        if center is not None and width is not None:
+            apply_window_tags(param.output, center, width, explanation)
 
         # Stage output files
         print('Staging output files...', flush=True)
@@ -130,6 +136,40 @@ def stage_output_files(input_dir, output_dir, pattern):
     for file in glob.glob(f'{input_dir}/{pattern}'):
         shutil.move(file, output_dir)
 
+# Return the Window Center, Window Width, and Explanation tags from a DICOM file (or first file in a directory)
+def get_window_tags(dicom_file_or_dir):
+    if os.path.isdir(dicom_file_or_dir):
+        for root, dirs, files in os.walk(dicom_file_or_dir):
+            for file in files:
+                dicom_file = os.path.join(root, file)
+                if not is_dicom(str(dicom_file)):
+                    continue
+                center, width, explanation = get_window_tags(dicom_file)
+                if center is not None:
+                    return center, width, explanation
+    else:
+        dicom = dcmread(dicom_file_or_dir)
+        center = dicom.WindowCenter if 'WindowCenter' in dicom  else None
+        width = dicom.WindowWidth if 'WindowWidth' in dicom  else None
+        explanation = dicom.WindowCenterWidthExplanation if 'WindowCenterWidthExplanation' in dicom  else None
+        if center and width:
+            return center, width, explanation if explanation else None
+    return None, None, None
+
+def apply_window_tags(dicom_dir, center, width, explanation):
+    # Apply Window Center, Window Width, and Explanation tags to DICOM files in output_dir
+    for root, dirs, files in os.walk(dicom_dir):
+        for file in files:
+            dicom_file = os.path.join(root, file)
+            if not is_dicom(str(dicom_file)):
+                continue
+            dicom = dcmread(dicom_file)
+            dicom.WindowCenter = center
+            dicom.WindowWidth = width
+            if explanation:
+                dicom.WindowCenterWidthExplanation = explanation
+            dicom.save_as(str(dicom_file))
+    return True
 
 if __name__ == '__main__':
     print(f"Command line call: {' '.join(sys.argv)}", flush=True)
