@@ -1,5 +1,6 @@
 FROM xnat/mri_reface_core.3.3
 USER root
+RUN ulimit -n 4096
 RUN apt-get update && apt-get -y install python3 && apt-get -y install python3-pip && pip3 install xnat
 ADD ./workspace/*.py /workspace/
 WORKDIR /workspace

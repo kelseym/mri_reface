@@ -1,4 +1,4 @@
 cp Dockerfile.base Dockerfile && \
 ./command2label.py xnat/command.json  >> Dockerfile && \
-docker build -t xnat/mri_reface:1.3 -t registry.nrg.wustl.edu/docker/nrg-repo/mri_reface:1.3 .
+docker build -t xnat/mri_reface:1.4 -t registry.nrg.wustl.edu/docker/nrg-repo/mri_reface:1.4 .
 rm Dockerfile

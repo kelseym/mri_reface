@@ -1,0 +1,252 @@
+{
+    "name": "mri_reface_highmem",
+    "description": "HighMem - Runs mri_reface on a DICOM scan with project level scan classification.",
+    "info-url": "https://github.com/kelseym/mri_reface",
+    "version": "1.4",
+    "schema-version": "1.0",
+    "type": "docker",
+    "image": "registry.nrg.wustl.edu/docker/nrg-repo/mri_reface:1.4",
+    "command-line": "ulimits -n 4096 && python3 xnat_reface.py --input /input --output /output #PROJECT_ID# #EXPERIMENT_ID# #SCAN_ID# --csv /csv/#SCAN_CLASS_CSV_FILE# --delete_protocol_tags",
+    "override-entrypoint": "true",
+    "reserve-memory": 20000,
+    "mounts": [
+        {
+            "name": "in",
+            "writable": "false",
+            "path": "/input"
+        },
+        {
+            "name": "csv",
+            "writable": "true",
+            "path": "/csv"
+        },
+        {
+            "name": "out",
+            "writable": "true",
+            "path": "/output"
+        },
+        {
+            "name": "dicom-out",
+            "writable": "true",
+            "path": "/output/dcm"
+        },
+        {
+            "name": "nifti-out",
+            "writable": "true",
+            "path": "/output/nifti"
+        },
+        {
+            "name": "refaced-nifti-out",
+            "writable": "true",
+            "path": "/output/refaced_nifti"
+        },
+        {
+            "name": "tmp",
+            "writable": "true",
+            "path": "/tmp"
+        }
+    ],
+    "environment-variables": {"MCR_CACHE_ROOT": "/tmp"},
+    "inputs": [
+        {
+            "name": "project-id",
+            "description": "Experiment project ID.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#PROJECT_ID#",
+            "command-line-flag": "--project",
+            "command-line-separator": " ",
+            "true-value": null,
+            "false-value": null
+        },
+        {
+            "name": "experiment-id",
+            "description": "Experiment ID used to match CSV row.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#EXPERIMENT_ID#",
+            "command-line-flag": "--experiment",
+            "command-line-separator": " ",
+            "true-value": null,
+            "false-value": null
+        },
+        {
+            "name": "scan-id",
+            "description": "Scan ID used to match CSV row.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#SCAN_ID#",
+            "command-line-flag": "--scan",
+            "command-line-separator": " ",
+            "true-value": null,
+            "false-value": null
+        },
+        {
+            "name": "csv-file",
+            "description": "CSV file as a project resource, containing scan classification data.",
+            "type": "string",
+            "required": true,
+            "replacement-key": "#SCAN_CLASS_CSV_FILE#"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "output",
+            "description": "Unsorted output files.",
+            "mount": "out",
+            "required": true
+        },
+        {
+            "name": "output-dicom",
+            "description": "Refaced dicom output files.",
+            "mount": "dicom-out",
+            "required": true
+        },
+        {
+            "name": "output-nifti",
+            "description": "NIFTI output files.",
+            "mount": "nifti-out",
+            "required": true
+        },
+        {
+            "name": "refaced-output-nifti",
+            "description": "NIFTI output files.",
+            "mount": "refaced-nifti-out",
+            "required": true
+        }
+    ],
+    "xnat": [
+        {
+            "name": "mri-reface-scan-highmem",
+            "description": "HighMem - Run MRI Reface on a Scan.",
+            "label": "mri-reface-scan-highmem",
+            "contexts": ["xnat:imageScanData"],
+            "external-inputs": [
+                {
+                    "name": "scan",
+                    "description": "Input scan",
+                    "type": "Scan",
+                    "required": true,
+                    "matcher": "'DICOM' in @.resources[*].label",
+                    "provides-value-for-command-input": "scan-id"
+                }
+            ],
+            "derived-inputs": [
+                {
+                    "name": "scan-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "scan",
+                    "provides-value-for-command-input": "scan-id",
+                    "derived-from-xnat-object-property": "id"
+                },
+                {
+                    "name": "scan-dicoms",
+                    "description": "The dicom resource on the scan",
+                    "type": "Resource",
+                    "derived-from-wrapper-input": "scan",
+                    "provides-files-for-command-mount": "in",
+                    "matcher": "@.label == 'DICOM'"
+                },
+                {
+                    "name": "session",
+                    "description": "Session",
+                    "type": "Session",
+                    "required": true,
+                    "load-children": false,
+                    "derived-from-wrapper-input": "scan",
+                    "provides-value-for-command-input": "experiment-id"
+                },
+                {
+                    "name": "session-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "session",
+                    "provides-value-for-command-input": "experiment-id",
+                    "derived-from-xnat-object-property": "label"
+                },
+                {
+                    "name": "project",
+                    "description": "Input project",
+                    "type": "Project",
+                    "required": true,
+                    "load-children": true,
+                    "derived-from-wrapper-input": "session"
+                },
+                {
+                    "name": "project-id",
+                    "type": "string",
+                    "derived-from-wrapper-input": "project",
+                    "provides-value-for-command-input": "project-id",
+                    "derived-from-xnat-object-property": "id"
+                },
+                {
+                    "name": "scan-class-resource",
+                    "description": "Scan classifier CSV folder.",
+                    "type": "Resource",
+                    "matcher": "@.label == 'DICOM_LM_CLASSIFIER_OUTPUT'",
+                    "derived-from-wrapper-input": "project",
+                    "provides-files-for-command-mount": "csv"
+                },
+                {
+                    "name": "scan-class-file",
+                    "type": "File",
+                    "matcher": "@.name =~ /.*?csv/",
+                    "required": true,
+                    "load-children": true,
+                    "derived-from-wrapper-input": "scan-class-resource"
+                },
+                {
+                    "name": "scan-class-filename",
+                    "type": "string",
+                    "required": true,
+                    "provides-value-for-command-input": "csv-file",
+                    "user-settable": false,
+                    "load-children": false,
+                    "derived-from-wrapper-input": "scan-class-file",
+                    "derived-from-xnat-object-property": "name"
+                }
+            ],
+            "output-handlers": [
+                {
+                    "name": "reface-resource",
+                    "accepts-command-output": "output",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_QC",
+                    "description": "Unsorted mri_reface output files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "reface-dicom",
+                    "accepts-command-output": "output-dicom",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_DICOM",
+                    "format": "DICOM",
+                    "description": "Refaced DICOM scan files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "nifti",
+                    "accepts-command-output": "output-nifti",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "NIFTI",
+                    "format": "NIFTI",
+                    "description": "NIFTI output files.",
+                    "tags": ["mri_reface"]
+                },
+                {
+                    "name": "reface-nifti",
+                    "accepts-command-output": "refaced-output-nifti",
+                    "as-a-child-of-wrapper-input": "scan",
+                    "type": "Resource",
+                    "label": "REFACED_NIFTI",
+                    "format": "NIFTI",
+                    "description": "Refaced NIFTI output files.",
+                    "tags": ["mri_reface"]
+                }
+            ]
+        }
+    ],
+    "generic-resources": {"RESERVED": "1"}
+}

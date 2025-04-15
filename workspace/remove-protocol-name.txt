@@ -1,0 +1,4 @@
+version "6.6"
+
+-(0018,1030) // Remove Protocol Name
+-(0008,103E) // Remove Series Description

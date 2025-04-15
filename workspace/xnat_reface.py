@@ -21,9 +21,12 @@ from ScanClassifierCSV import ScanClassifierCSV
 # See https://www.nitrc.org/projects/mri_reface for more information
 
 
+
+
 def main():
     try:
         param = parse_command_line_parameters()
+        input_dir = param.input
 
         # If scan_type is not specified, parse csv file to extract scan type
         if param.scan_type is not None:
@@ -40,8 +43,16 @@ def main():
         # Return the Window Center, Window Width, and Explanation tags from a DICOM file (or first file in a directory)
         [center, width, explanation] = get_window_tags(param.input)
 
+        # remove protocol tags (0018,1030) & (0008,103E) before refacing
+        if param.delete_protocol_tags:
+            print('Deleting protocol tags.', flush=True)
+            staged_input = os.path.join(param.output, 'input')
+            os.mkdir(staged_input)
+            delete_protocol_tags(input_dir, staged_input)
+            input_dir = staged_input
+
         print('Launching mri_reface...', flush=True)
-        launch_shell_script(param.mri_reface_script, param.input, param.output, scan_type, param.mri_reface_opts)
+        launch_shell_script(param.mri_reface_script,input_dir, param.output, scan_type, param.mri_reface_opts)
 
         if center is not None and width is not None:
             apply_window_tags(param.output, center, width, explanation)
@@ -58,6 +69,13 @@ def main():
         subprocess.run(['mkdir', nifti_output_dir])
         print(f"Moving nifti files to {nifti_output_dir}", flush=True)
         stage_output_files(param.output, nifti_output_dir, '*.nii')
+
+        if param.input != input_dir and os.path.exists(input_dir):
+            print(f"Removing staged input files from {input_dir}", flush=True)
+            try:
+                shutil.rmtree(input_dir)
+            except Exception as e:
+                print(f"Error removing staged input files from {input_dir}: {e}", flush=True)
 
     except csv.Error as e:
         sys.exit(f'Error parsing CSV file: {e}')
@@ -79,9 +97,10 @@ def parse_command_line_parameters():
     parser.add_argument('--mri_reface_opts', required=False, help='Specify optional mri_reface arguments.')
     parser.add_argument('--input', required=False, default='/input', help='DICOM Scan input directory')
     parser.add_argument('--output', required=False, default='/output', help='mri_reface output directory')
-    parser.add_argument('--delete_existing', required=False, default=True, help='Delete existing output recources - '
+    parser.add_argument('--delete_existing', required=False, action='store_true', help='Delete existing output resources - '
                                                                                 'REFACED_QC, REFACED_DICOM, NIFTI, '
                                                                                 'REFACED_NIFTI')
+    parser.add_argument('--delete_protocol_tags', required=False, action='store_true', help='Delete protocol tags (0018,1030) & (0008,103E) before refacing')
     parser.add_argument("--host", default=os.getenv("XNAT_HOST"),
                         help="XNAT server URL (default: environment variable XNAT_HOST)."
                         )
@@ -135,6 +154,23 @@ def stage_output_files(input_dir, output_dir, pattern):
     # Move files from input_dir to output_dir
     for file in glob.glob(f'{input_dir}/{pattern}'):
         shutil.move(file, output_dir)
+
+
+def delete_protocol_tags(input_dir, staged_input):
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            input_file = os.path.join(root, file)
+            output_file = os.path.join(staged_input, file)
+            if not is_dicom(str(input_file)): continue
+            dicom = dcmread(input_file)
+            if 'SeriesDescription' in dicom:
+                print( 'Deleting Series Description')
+                dicom.SeriesDescription = ''
+            if 'ProtocolName' in dicom:
+                print( 'Deleting Protocol Name')
+                dicom.ProtocolName = ''
+            dicom.save_as(str(output_file))
+
 
 # Return the Window Center, Window Width, and Explanation tags from a DICOM file (or first file in a directory)
 def get_window_tags(dicom_file_or_dir):
