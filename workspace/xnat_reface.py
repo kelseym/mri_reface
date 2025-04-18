@@ -119,7 +119,7 @@ def parse_command_line_parameters():
 # Delete existing mri_reface output resources
 def delete_reface_outputs(param):
     reface_resources = ['REFACED_QC', 'REFACED_DICOM', 'NIFTI', 'REFACED_NIFTI']
-    with xnat.connect(param.host, user=param.user, password=param.password) as session:
+    with xnat.connect(param.host, user=param.user, password=param.password, detect_redirect=False) as session:
         scan = session.projects[param.project].experiments[param.experiment].scans[param.scan]
         for resource in reface_resources:
             try:
