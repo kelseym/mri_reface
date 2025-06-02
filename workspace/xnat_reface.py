@@ -12,15 +12,13 @@ import glob
 import shutil
 import xnat
 import os
-from pydicom import dcmread
+from pydicom import dcmread, dcmwrite
 from pydicom.misc import is_dicom
 
 from ScanClassifierCSV import ScanClassifierCSV
 
 
 # See https://www.nitrc.org/projects/mri_reface for more information
-
-
 
 
 def main():
@@ -43,10 +41,18 @@ def main():
         # Return the Window Center, Window Width, and Explanation tags from a DICOM file (or first file in a directory)
         [center, width, explanation] = get_window_tags(param.input)
 
+        # If manufacture tag is not set, set it to 'anonymized'
+        if is_missing_manufacture_tag(input_dir):
+            print('Missing Manufacture tag, setting to "anonymized".', flush=True)
+            staged_input = os.path.join(param.output, 'input0')
+            os.makedirs(staged_input)
+            add_manufacture_tag(input_dir, staged_input, 'anonymized')
+            input_dir = staged_input
+
         # remove protocol tags (0018,1030) & (0008,103E) before refacing
         if param.delete_protocol_tags:
             print('Deleting protocol tags.', flush=True)
-            staged_input = os.path.join(param.output, 'input')
+            staged_input = os.path.join(param.output, 'input1')
             os.mkdir(staged_input)
             delete_protocol_tags(input_dir, staged_input)
             input_dir = staged_input
@@ -170,6 +176,29 @@ def delete_protocol_tags(input_dir, staged_input):
                 print( 'Deleting Protocol Name')
                 dicom.ProtocolName = ''
             dicom.save_as(str(output_file))
+
+def is_missing_manufacture_tag(input_dir):
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            input_file = os.path.join(root, file)
+            if not is_dicom(str(input_file)): continue
+            dicom = dcmread(input_file)
+            if 'Manufacturer' not in dicom or dicom.Manufacturer == '':
+                return True
+    return False
+
+def add_manufacture_tag(input_dir, staged_input, tag_value):
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            input_file = os.path.join(root, file)
+            output_file = os.path.join(staged_input, file)
+            if not is_dicom(str(input_file)): continue
+            dicom = dcmread(input_file)
+            if 'Manufacturer' not in dicom:
+                dicom.add_new('Manufacturer', 'LO', tag_value)
+            else:
+                dicom.Manufacturer = tag_value
+            dcmwrite(output_file, dicom)
 
 
 # Return the Window Center, Window Width, and Explanation tags from a DICOM file (or first file in a directory)
